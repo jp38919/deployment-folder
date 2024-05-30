@@ -19,7 +19,7 @@ spec:
           image: jp38919/user-service:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 9093
+            - containerPort: 9094
           env:
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
@@ -44,8 +44,8 @@ metadata:
 spec:
   ports:
     - protocol: TCP
-      port: 9093
-      targetPort: 9093
+      port: 9094
+      targetPort: 9094
   selector:
     app: userapp
  

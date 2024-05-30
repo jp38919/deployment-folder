@@ -17,7 +17,7 @@ spec:
           image: jp38919/order-service:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 9094
+            - containerPort: 9095
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-Djdk.tls.client.protocols=TLSv1.2"
@@ -39,5 +39,5 @@ spec:
     app: orderapp
   ports:
     - protocol: TCP
-      port: 9094
-      targetPort: 9094
+      port: 9095
+      targetPort: 9095
