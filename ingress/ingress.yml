@@ -41,7 +41,7 @@ spec:
               service:
                 name: order-service
                 port:
-                  number: 9095
+                  number: 9096
 
 
           - path: /user

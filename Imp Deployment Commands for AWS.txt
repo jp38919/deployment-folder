@@ -1,0 +1,316 @@
+
+
+
+
+docker build -t jp38919/eureka-server:latest .
+docker login
+docker push jp38919/eureka-server:latest
+
+
+docker build -t jp38919/restaurant-listing-service:latest .
+docker login
+docker push jp38919/restaurant-listing-service:latest
+
+docker build -t jp38919/food-catalogue-service:latest .
+docker login
+docker push jp38919/food-catalogue-service:latest
+
+docker build -t jp38919/user-service:latest .
+docker login
+docker push jp38919/user-service:latest
+
+docker build -t jp38919/order-service:latest .
+docker login
+docker push jp38919/order-service:latest
+
+docker build -t jp38919/food-delivery-app-fe:latest .
+docker login
+docker push jp38919/food-delivery-app-fe:latest
+
+aws configure
+aws sts get-caller-identity
+
+eksctl create cluster --name aws-eks-cluster --region eu-west-2 --nodegroup-name eks-cluster-node --node-type t3.medium --nodes 1
+
+kubectl apply -f .
+kubectl get pods
+kubectl get svc
+
+kubectl port-forward service/eureka-service 8761:8761
+kubectl port-forward service/restaurant-service 9091:9091
+kubectl port-forward service/foodcatalogue-service 9092:9092
+kubectl port-forward service/user-service 9094:9094
+kubectl port-forward service/order-service 9096:9096
+kubectl port-forward service/angular-service 80:80
+
+
+IMP NOTE:
+
+********************************************         IN Angular FE App we need to update the LOAD Balancer URL in its url.ts file for opening the application properly           *********************************
+
+Load Balancer 
+
+step 1:
+download the iam policy document and place it in deployment-folder as iam_policy.json
+https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.4.7/docs/install/iam_policy.json
+
+step 2: Run the create policy command in eu-west-2 region on the same deployment folder 
+aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://iam_policy.json --region eu-west-2
+
+step 3:
+Associate the IAM OIDC provider with your EKS cluster in your AWS region (e.g., eu-west-2):
+eksctl utils associate-iam-oidc-provider --region=eu-west-2 --cluster=aws-eks-cluster --approve        
+
+step 4:
+Create an IAM service account for the "aws-load-balancer-controller" in the "kube-system" namespace of your EKS cluster (e.g., aws-eks-cluster) in your AWS region (e.g., eu-west-2). Use the appropriate AWS account ID and IAM policy ARN:
+Important: Ensure that you put correct account id without hyphen "119825543068" AWS account ID, correct "eu-west-2" AWS region, and correct cluster name "aws-eks-cluster"
+eksctl create iamserviceaccount --cluster=aws-eks-cluster --namespace=kube-system --region eu-west-2 --name=aws-load-balancer-controller --role-name AmazonEKSLoadBalancerControllerRole --attach-policy-arn=arn:aws:iam::119825543068:policy/AWSLoadBalancerControllerIAMPolicy --approve
+
+
+Step 5:
+Apply the Cert Manager YAML file for installation:
+kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.5.4/cert-manager.yaml        
+
+
+Step 6:
+Download the YAML file for the AWS Load Balancer Controller from the following URL:
+https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.4.7/v2_4_7_full.yaml
+
+Step 7:
+Remove the specified code block from the downloaded YAML file:
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: aws-load-balancer-controller
+  name: aws-load-balancer-controller
+  namespace: kube-system
+---
+
+Step 8:   
+Edit the "Deployment" section in the YAML file by changing the following parameters:
+    spec:
+      containers:
+      - args:
+        - --cluster-name=aws-eks-cluster
+        - --ingress-class=alb
+        - --aws-vpc-id=vpc-0d257d84db683673a
+        - --aws-region=eu-west-2
+        image: codedecode25/aws-load-balancer:v2.4.7
+
+Step 9:        
+Replace the image name with:
+codedecode25/aws-load-balancer:v2.4.7        
+
+Step 10:
+Save yaml file with _edited name
+
+Step 11
+Apply the edited YAML file:
+kubectl apply -f v2_4_7_full_edited.yaml    
+
+Step 12:
+to verify use (remember here kube-system is the namespace hence we use -n namespace)
+kubectl get pods -n kube-system
+
+
+Goto deployment folder / aws  and run the below kubernetes command
+kubectl apply -f ingress.yml
+kubectl get ingress
+
+
+
+___________
+
+finally to delete the cluster we use the following commands
+
+first manually delete nodegroups i.e. eks-cluster-node and then manually delete cluster as well if the below command doesnt run 
+
+Also check for elastic ip , NAT GATEWAY, Security groups, and eims associated and delete them as well in eu-west-2 regions
+
+Check for load balancers and delete them manually 
+
+eksctl delete cluster --name aws-eks-cluster --region eu-west-2
+
+
+______________________________________________________________________________________________________________________________________
+
+For CI CD we need a t2 large instance with Sonarcube and Jenkins installed 
+
+Step 1:
+Create a t2 large instance in "eu-west-3" region with name "ec2-instance-for-CICD-sonar"
+
+Generate a new keypair "CICDSonarEC2Kp" as .pem file
+
+Select 3 checkboxes i.e. 
+1. Allow SSH traffic from Anywhere
+2. Allow HTTPs traffic from the internet
+3. Allow HTTP traffic from the internet
+
+Also add 2 more rules in inbound for Security Group for CUSTOMTCP and IPV4Anywhere
+9000 for Sonar  
+8080 for Jenkins
+
+Step 2:
+Connect the EC2 with ssh from local and install the below tools
+
+Step 3: 
+Install Amazon Corretto JDK 11:
+sudo su -
+sudo yum update -y
+sudo yum install java-11-amazon-corretto-headless
+
+Step 4:    
+Maven installation
+sudo yum install -y maven
+mvn -version
+
+Step 5:
+Update the system, install Docker, and configure it to start on system boot:
+        sudo yum update -y
+        sudo yum install -y docker
+        sudo service docker start
+        sudo chkconfig docker on 
+
+Step 6:  
+Download Jenkins repository configuration, install Jenkins, and start it:
+        sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+        sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+        sudo yum install jenkins -y
+        sudo systemctl enable jenkins
+        sudo systemctl start jenkins
+ 
+Step 7: 
+Install NVM (Node Version Manager) and Node.js version 16:
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+        . ~/.nvm/nvm.sh
+        nvm install 16
+
+Step 8:
+Install Git:
+sudo yum install -y git
+
+Step 9:
+Check the status of Jenkins service:
+sudo systemctl status jenkins
+Retrieve the initial admin password for Jenkins:
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+Step 10:
+Add Jenkins user to the docker group to grant access:
+sudo usermod -aG docker jenkins
+
+
+Sonar 
+Step 11:
+Run SonarQube in Docker container: -d detached mode and -p port 
+docker run -d -p 9000:9000 --name sonarqube sonarqube
+Container Id: 36bf6211af56cd1687c9cd3f39bcb723c26c9dbce590c6a35553f5d9ea7f6c04
+
+
+Step 12:
+Check the logs of the SonarQube container:
+docker logs -f sonarqube  
+
+Step 13:
+To check Sonar and Jenkins we need to Login to Port using the Public IP adress of the EC2 instance 
+i.e. http://13.39.235.161:9000/ - Sonar 
+
+Step 14:
+For Sonar we need to login first using admin/admin and set our new password as "codedecode"
+Then generate a "Sonar Token" and Save in our local for future purpose
+Click on User Icon --> My Account --> Security
+SonarToken --> UserToken and no expiration --> Generate and Copy the token generated here
+squ_c6367b35989f544290cacb291ed224f515eb9dae
+
+Step 15
+Goto Quaity Gate and set new rule for Coverage
+
+Add few more conditions for existing code and not new code and 
+Create --> SonarRules  --> Unlock Editing  --> Add 2 Conditions 
+
+Condition--> On Overall Code  --> Coverage --> 90%
+Condition--> On Overall Code --> Line Coverage --> 90%
+
+Step 16
+Check the local dependencies in pom.xml for jacoco plugin added i.e. after mapstruct plugin
+
+Imp Step 17
+mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dsonar.host.url=http://13.39.235.161:9000/ -Dsonar.login=squ_c6367b35989f544290cacb291ed224f515eb9dae
+
+PS Note
+If instance is reconnected then SSH it and run the below docker command
+docker run -d -p 9000:9000 --name sonarqube sonarqube
+
+Also if container is not starting then restart container with below command 
+imp note we should be superuser i.e sudo su -
+docker run -d -p 9000:9000 --name sonarqube sonarqube
+docker restart <containerid>  
+
+
+Step 18:
+For Jenkins we add all the user details and install suggested plugins
+http://13.39.235.161:8080/ - jenkins 
+
+Step 19:
+sudo su -
+use cat /var/lib/jenkins/secrets/initialAdminPassword for initial password and complete profile with admin and codedecode as password
+
+Step 20
+We need to install plugin SSH Agent under Manage Jenkins
+Manage Jenkins --> Tools and add "Maven"
+
+Step 21:
+We need to integrate Webhook in Git restaurant listing service
+Goto https://github.com/jp38919/restaurant-listing-ms  --> Settings --> Webhooks  --> Add webhook --> enter ur password
+
+add url as below
+http://13.39.235.161:8080/github-webhook/
+Content type: application/JSON
+just the Push Event
+
+Step 22 :
+Now we need to create the Public and Private Key
+ssh-keygen -t rsa -b 4096
+
+public Key to be added in Github
+cat ~/.ssh/id_rsa.pub
+copy the public key in a notepad then goto github click on Rightmost Avatar icon --> Settings --> SSH and GPG Keys --> new SSH Key --> Title "jenkins-public-key" Key Type : Authentication Key  -->
+Paste the key and press create button
+
+private Key to be added in Jenkins
+cat ~/.ssh/id_rsa
+copy the private key and Goto Jenkins Page --> Manage Jenkins --> Credentials  --> Click on System --> Click on Global Credentials (unrestricted) --> Add Credentials --> SSH Username with prvate Key 
+--> Add Id as "git-ssh" --> Private Key --> Enter directly  --> Paste the key --> press Create button
+  
+
+Step 23 : On smae page add Docker Credentials 
+
+Goto Jenkins Page --> Manage Jenkins --> Credentials  --> Click on System --> Click on Global Credentials (unrestricted) --> Add Credentials --> Username with Password
+username:jp38919
+password:Palav123#
+id:DOCKER_HUB_CREDENTIAL
+
+Step 24: Also Add no verification during Git Push so disable Dashboard--> ManageJenkins--> Security 
+--> Host Key Verification Strategy as No Verification 
+
+Step 25: Goto Dashboard --> Create Pipeline --> restaurant-listing-pipeline  
+--> in Build Trigger --. Select Github hook trigger for SCM Polling  --> Save
+--> Goto Configure --> Advanced Project Options  --> Pipeline SCRIPT from SCM --> Select SCM as Git --> Repository URL https://github.com/jp38919/restaurant-listing-ms.git  --> Save 
+--> Check branch Specifier as /master and Script path as Jenkinsfile
+
+
+
+
+
+
+
+__________________________________________________________________________________________________
+
+https://www.airbnb.co.in/rooms/652448752479086636?adults=4&category_tag=Tag%3A677&enable_m3_private_room=true&photo_id=1426717906&search_mode=flex_destinations_search&check_in=2024-06-09&check_out=2024-06-10&source_impression_id=p3_1717187774_P3ckm0QzwYpNaS-4&previous_page_section_name=1000&federated_search_id=4bcee019-ba13-40af-af54-78a3411bb584
+
+CyberSecurity Tutorials
+https://www.youtube.com/watch?v=lpa8uy4DyMo
+
+
