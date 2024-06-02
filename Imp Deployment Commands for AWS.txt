@@ -200,7 +200,7 @@ sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 Step 10:
 Add Jenkins user to the docker group to grant access:
 sudo usermod -aG docker jenkins
-
+sudo service jenkins restart
 
 Sonar 
 Step 11:
@@ -300,7 +300,11 @@ Step 25: Goto Dashboard --> Create Pipeline --> restaurant-listing-pipeline
 --> Goto Configure --> Advanced Project Options  --> Pipeline SCRIPT from SCM --> Select SCM as Git --> Repository URL https://github.com/jp38919/restaurant-listing-ms.git  --> Save 
 --> Check branch Specifier as /master and Script path as Jenkinsfile
 
-
+Step 26:
+remember to restart Jenkins once by adding Docker user 
+Add Jenkins user to the docker group to grant access:
+sudo usermod -aG docker jenkins
+sudo service jenkins restart
 
 
 
