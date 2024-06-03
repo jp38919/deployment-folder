@@ -343,7 +343,24 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 
 kubectl port-forward svc/argocd-server -n argocd 8080:80
 
+
+Also install Argocd cli using choco , Open new cmd with Administrator priviledges 
+choco install argocd-cli
+
+username is admin
 Now to get Argocd initial password
 argocd admin initial-password -n argocd
 
+
+Now create a hook to github and save in Settings 
+
+Also we need to create a Public and Private key with our Local Machine (which has port forwarded ArgoCD Page) and GitHub Repository 
+
+Powershell --> Run as Administrator 
+
+Imo Step : To create an Application in ArgoCD 
+We need to run the Application.yaml file with our details 
+
+Open the CMD from application resource directly and enter command 
+kubectl apply -f .
 
