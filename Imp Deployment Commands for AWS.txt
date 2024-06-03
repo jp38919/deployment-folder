@@ -353,6 +353,18 @@ argocd admin initial-password -n argocd
 
 
 Now create a hook to github and save in Settings 
+In ArgoCD Settings --> Repositories --> Connect to Repo
+Select Project as default and goto github of deployment-folder repo and select the SSH url  i.e. git@github.com:jp38919/deployment-folder.git
+
+ssh-keygen -t rsa -b 4096
+
+Goto GitHub repository settings --> SSH and GPG Keys --> new SSH Key ArgoCD-PublicKey
+goto .ssh/id_rsa.pub and open as notepad.txt
+
+Copy the private key in ArgoCD 
+goto .ssh/id_rsa  and open as notepad.txt
+
+We see connection as successful
 
 Also we need to create a Public and Private key with our Local Machine (which has port forwarded ArgoCD Page) and GitHub Repository 
 
@@ -364,3 +376,8 @@ We need to run the Application.yaml file with our details
 Open the CMD from application resource directly and enter command 
 kubectl apply -f .
 
+To Delete ArgoCD we have the following command
+kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+finally Delete Cluster as well
+C:\Users\palao\OneDrive\Desktop\keys> eksctl delete cluster --name aws-eks-cluster1 --region eu-west-2
