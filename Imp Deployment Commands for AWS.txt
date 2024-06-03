@@ -44,9 +44,7 @@ kubectl port-forward service/order-service 9096:9096
 kubectl port-forward service/angular-service 80:80
 
 
-IMP NOTE:
 
-********************************************         IN Angular FE App we need to update the LOAD Balancer URL in its url.ts file for opening the application properly           *********************************
 
 Load Balancer 
 
@@ -138,6 +136,10 @@ ________________________________________________________________________________
 
 For CI CD we need a t2 large instance with Sonarcube and Jenkins installed 
 
+
+IMP NOTE:
+
+********************************************         Whenever we start the EC2 Instance after stopping it , All the Webhooks and Jenkinsfiles must be updated with latest Public ip address for CI CD to work*******************************
 Step 1:
 Create a t2 large instance in "eu-west-3" region with name "ec2-instance-for-CICD-sonar"
 
@@ -200,6 +202,7 @@ sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 Step 10:
 Add Jenkins user to the docker group to grant access:
 sudo usermod -aG docker jenkins
+docker images
 sudo service jenkins restart
 
 Sonar 
@@ -246,6 +249,9 @@ docker run -d -p 9000:9000 --name sonarqube sonarqube
 Also if container is not starting then restart container with below command 
 imp note we should be superuser i.e sudo su -
 docker run -d -p 9000:9000 --name sonarqube sonarqube
+sudo docker images
+to remove the inappropraite docker images use below command
+docker rmi <image id>
 docker restart <containerid>  
 
 
@@ -307,14 +313,17 @@ sudo usermod -aG docker jenkins
 sudo service jenkins restart
 
 
+_________________________________Front End Pipeline Creation --------------------------------------------------
 
 
+Step 27 
+Create the Front End App's pipeline , Prerequisite is to install Nodejs as per in Step 7 above 
 
-__________________________________________________________________________________________________
+For checking the Node Version while creating its pipeline
+node -e "console.log('Running Node.js '+process.version)"
 
-https://www.airbnb.co.in/rooms/652448752479086636?adults=4&category_tag=Tag%3A677&enable_m3_private_room=true&photo_id=1426717906&search_mode=flex_destinations_search&check_in=2024-06-09&check_out=2024-06-10&source_impression_id=p3_1717187774_P3ckm0QzwYpNaS-4&previous_page_section_name=1000&federated_search_id=4bcee019-ba13-40af-af54-78a3411bb584
+Manage Jenkins --> Plugins --> Nodejs Plugins
 
-CyberSecurity Tutorials
-https://www.youtube.com/watch?v=lpa8uy4DyMo
+Then Add "Nodejs" with installed version in the Tools Section of Jenkins 
 
 
