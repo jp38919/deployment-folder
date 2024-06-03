@@ -30,7 +30,7 @@ docker push jp38919/food-delivery-app-fe:latest
 aws configure
 aws sts get-caller-identity
 
-eksctl create cluster --name aws-eks-cluster --region eu-west-2 --nodegroup-name eks-cluster-node --node-type t3.medium --nodes 1
+eksctl create cluster --name aws-eks-cluster1 --region eu-west-2 --nodegroup-name eks-cluster-node --node-type t3.medium --nodes 1
 
 kubectl apply -f .
 kubectl get pods
@@ -325,5 +325,25 @@ node -e "console.log('Running Node.js '+process.version)"
 Manage Jenkins --> Plugins --> Nodejs Plugins
 
 Then Add "Nodejs" with installed version in the Tools Section of Jenkins 
+
+In Github for project add the Webhook http://13.38.80.145:8080/github-webhook/
+
+Also in "Jenkinsfile" set your correct repository names and usernames
+
+__________________________________Argo CD in EKS Cluster ______________________________________________________________________________________________________________________________________
+
+Step 28:
+Create a namespace of argocd
+kubectl create namespace argocd
+
+Step 29:
+Now change the Internets Connection Provider from JIO TO AIRTEL for JIO has blocked many ArgoCD related contents
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+kubectl port-forward svc/argocd-server -n argocd 8080:80
+
+Now to get Argocd initial password
+argocd admin initial-password -n argocd
 
 
